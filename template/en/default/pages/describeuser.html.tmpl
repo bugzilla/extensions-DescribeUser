@@ -1,0 +1,377 @@
+[%# 1.0@bugzilla.org %]
+[%# The contents of this file are subject to the Mozilla Public
+  # License Version 1.1 (the "License"); you may not use this file
+  # except in compliance with the License. You may obtain a copy of
+  # the License at http://www.mozilla.org/MPL/
+  #
+  # Software distributed under the License is distributed on an "AS
+  # IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
+  # implied. See the License for the specific language governing
+  # rights and limitations under the License.
+  #
+  # The Original Code is the Bugzilla Bug Tracking System.
+  #
+  # The Initial Developer of the Original Code is Netscape Communications
+  # Corporation. Portions created by Netscape are
+  # Copyright (C) 1998 Netscape Communications Corporation. All
+  # Rights Reserved.
+  #
+  # Contributor(s): Gervase Markham <gerv@gerv.net>
+  #%]
+
+[%# INTERFACE:
+  # displayname:        displayname for user
+  # to_be_conjugation:  "is" or "are"
+  # comments:           Number of comments user has added to bugs
+  # bugs_closed:        Number of comments user has added to bugs
+  # bugs_reported:      Number of comments user has added to bugs
+  # developed_products: products the user is a developer for
+  #
+  # userinfo: info about the user; contains
+  #   id:                 bugzilla userid
+  #   email:              email address
+  #   points:             points the user has acquired
+  #   products_interests: products the user is interested in
+  #
+  # patches: list of patches; each patch has
+  #   status:      review status of the patch (e.g. 'needs-work')
+  #   attach_id:   attachment id, for attachment.cgi
+  #   bug_id:      bug where patch is filed against
+  #   product:     name of product in which the bug is filed against
+  #   description: patch description
+  # 
+  # assignedbugs:
+  # needinfoassignedbugs:
+  # needinforeporterbugs:
+  # newbugs:
+  # inprogressbugs:
+  # recentlyclosed:
+  # <All provide lists of bugs, with the fields>
+  #   bug_id:       bug id
+  #   product:      product the bug is filed against
+  #   bug_status:   status of the bug
+  #   resolution:   resolution of the bug
+  #   bug_severity: severity of the bug
+  #   short_desc:   summary (short description) of the bug
+ %]
+
+[% PROCESS global/variables.none.tmpl %]
+
+[%### Setting up the "Bugzilla User Info for <user>" header ###%]
+  [% linked_name = BLOCK %]
+    [% IF userinfo.id == user.id %]
+      [% showuser = '' %]
+    [% ELSE %]
+      [% showuser = displayname %]
+    [% END %]
+
+    [% IF showuser != '' %]
+      for 
+      [% IF user.in_group('editusers') || user.can_bless %]
+        <a href="editusers.cgi?action=edit&userid=[% userinfo.id 
+                FILTER uri %]">
+      [% END %]
+      [% showuser FILTER html %]
+      [% IF user.in_group('editusers') %]
+        </a>
+      [% END %]
+    [% END %]
+  [% END %]
+
+  [% name_title = BLOCK %]
+    [% linked_name FILTER remove('<[^>]*>') %]
+  [% END %]
+
+[%### Actually handling the header ###%]
+  [% PROCESS global/header.html.tmpl
+    title = "$terms.Bugzilla User Info$name_title"
+    header = "User Info$linked_name"
+    style = "
+  table.figures td { padding-top: 0px; padding-bottom: 0px }
+  table.figures td { margin-top: 0px; margin-bottom: 0px }
+  table.figures tr { margin-top: 0px; margin-bottom: 0px }
+  .blocker { margin-top: 1em; }
+  #body { padding-right: 0px; }
+  h3 { padding-top: 1em; }
+  h3 span { background-color: #babdb6; }
+  ul { padding-left: 1em; padding-top: 0px; padding-bottom: 0px; margin-top: 0px;
+  margin-bottom: 0px; }
+  "
+  %]
+
+[%### The info in the right hand side bar ###%]
+  <div style="position: relative; float: right; -moz-border-radius-topleft: 20px;
+              -webkit-border-top-left-radius: 20px; -webkit-border-bottom-left-radius: 20px;
+              -moz-border-radius-bottomleft: 20px; padding-right: 1em;
+              margin-right: 0px; margin-left: 1ex; background-color: #ffeafd;
+              padding-left: 1em; padding-bottom: 1em; width: 15em;">
+
+  <h3>Basic stats</h3>
+  [% displayname FILTER html %]
+  <ul>
+    <li> added [% comments FILTER html %] comments to [% terms.bugs %].</li>
+    <li> closed [% bugs_closed FILTER html %] [%+ terms.bugs %].</li>
+    <li> reported [% bugs_reported FILTER html %] [%+ terms.bugs %].</li>
+    <li> gathered [% points FILTER html %] points.</li>
+  </ul>
+
+  [% IF developed_products.size > 0 %]
+    <h3>Developer of</h3>
+
+    <ul>
+    [% FOREACH product = developed_products %]
+      <li><a href="browse.cgi?product=[% product.name FILTER uri %]">[% product 
+          FILTER html %]</a></li>
+    [% END %]
+    </ul>
+  [% END %]
+
+  [% IF userinfo.product_interests.size > 0 %]
+    <h3>Interested products</h3>
+
+    <ul>
+    [% FOREACH product = userinfo.product_interests %]
+      <li><a href="browse.cgi?product=[% product.name FILTER uri %]">[% product.name
+           FILTER html %]</a></li>
+    [% END %]
+    </ul>
+  [% END %]
+
+  [% IF watchers && watchers.size > 0 %]
+    <h3>Watchers</h3>
+    
+    <ul>
+    [% FOREACH watcher = watchers %]
+      <li>[% watcher FILTER html %]</li>
+    [% END %]
+    </ul>
+  [% END %]
+
+  <h3>Reports</h3>
+  <ul>
+    <li><a href="[% "buglist.cgi?bug_status=RESOLVED,VERIFIED,CLOSED" _
+                    "&amp;emailreporter1=1&amp;emailtype1=exact&amp;email1=" %]
+                 [% userinfo.email FILTER uri %]">All closed [% terms.bugs %]</a></li>
+    <li><a href="[% "buglist.cgi?emailcc1=1&amp;emailtype1=exact&amp;email1=" %]
+                 [% userinfo.email FILTER uri %]">All [% terms.bugs %] cc'ed</a></li>
+    <li><a href="[% "buglist.cgi?emaillongdesc1=1&amp;emailtype1=exact&amp;" _
+                    "email1=" %]
+                 [% userinfo.email FILTER uri %]">All [% terms.bugs %] commented</a></li>
+  </ul>
+
+  </div>
+
+[%### Bugs ###%]
+  <p>
+    <h3><span>Open Issues: 
+      <a href="
+        [% "buglist.cgi?bug_status=UNCONFIRMED&amp;bug_status=NEW" %]
+        [% "&amp;bug_status=REOPENED&amp;bug_status=ASSIGNED" %]
+        [% "&amp;emailassigned_to1=1&amp;emailtype1=exact&amp;email1=" %]
+        [% userinfo.email FILTER uri %]">
+        <b>Assigned to [% displayname FILTER html %]</b></a> 
+      [% "(the issue has been assigned to" %]
+      [%+ displayname FILTER html %]
+      [%+ "and it is not resolved or closed yet)" %]
+    </span></h3>
+    <table border="0" cellpadding="2" cellspacing="0">
+    [% FOREACH bug = assignedbugs %]
+      <tr class="[%+ IF loop.count() % 2 == 0 %]
+                   [% "bz_row_even" %]
+                 [% ELSE %]
+                   [% "bz_row_odd" %]
+                 [% END %]">
+        <td nowrap="nowrap" style="width: 6ex" align="center">
+          [% %]<a href="[% "show_bug.cgi?id=" %]
+          [% bug.bug_id FILTER uri%]">
+          [% bug.bug_id FILTER html %]</a></td>
+        <td nowrap="nowrap" style="width: 12ex">
+          [% %]<a href="[% "browse.cgi?product=" %]
+          [% bug.product FILTER uri %]">
+          [% bug.product FILTER html %]</a></td>
+        <td nowrap="nowrap" style="width: 4ex" align="center">
+          [% bug.bug_status.truncate(4) FILTER html %]</td>
+        <td nowrap="nowrap" style="width: 3ex" align="center">
+          [% bug.bug_severity.truncate(3) FILTER html %]</td>
+        <td><a href="[% "show_bug.cgi?id=" %]
+          [% bug.bug_id FILTER uri%]">
+          [% bug.short_desc FILTER html %]</a></td>
+      </tr>
+    [% END %]
+    </table>
+  </p>
+
+  <p>
+    <h3><span>Open Issues:
+      <a href="
+        [% "buglist.cgi?bug_status=NEEDINFO&amp;emailreporter1=1&amp;emailtype1=" %]
+        [% "exact&amp;email1=" %] [% userinfo.email FILTER uri %]">
+        <b>Needinfo</b></a>
+      ([% displayname FILTER html %] 
+      [%+ "reported this issue, it requires more information and you should " %]
+      [% "provide it) " %]
+    </span></h3>
+    <table border="0" cellpadding="3" cellspacing="1">
+    [% FOREACH bug = needinforeporterbugs %]
+      <tr class="[%+ IF loop.count() % 2 == 0 %]
+                   [% "bz_row_even" %]
+                 [% ELSE %]
+                   [% "bz_row_odd" %]
+                 [% END %]">
+        <td nowrap="nowrap" style="width: 6ex" align="center">
+          [% %]<a href="show_bug.cgi?id=[% bug.bug_id FILTER uri %]">
+          [% bug.bug_id FILTER html %]</a></td>
+        <td nowrap="nowrap" style="width: 12ex">
+          [% %]<a href="browse.cgi?product=[% bug.product FILTER uri %]">
+          [% bug.product FILTER html %]</a></td>
+        <td nowrap="nowrap" style="width: 4ex" align="center">
+          [% bug.bug_status.truncate(4) FILTER html %]</td>
+        <td nowrap="nowrap" style="width: 3ex" align="center">
+          [% bug.bug_severity.truncate(3) FILTER html %]</td>
+        <td><a href="show_bug.cgi?id=[% bug.bug_id FILTER uri%]">
+          [% bug.short_desc FILTER html %]</a></td>
+      </tr>
+    [% END %]
+    </table>
+  </p>
+
+  <p>
+    <h3><span>Open Issues: 
+      <a href="
+        [% "buglist.cgi?bug_status=UNCONFIRMED&amp;bug_status=NEW&amp;" %]
+        [% "bug_status=REOPENED&amp;emailreporter1=1&amp;emailtype1=exact" %]
+        [% "&amp;email1=" %] [% userinfo.email FILTER uri %]">
+        <b>New</b></a>
+      ([% displayname FILTER html %] 
+      [%+ "reported it but nobody has accepted it yet)" %]
+     </span></h3>
+    <table border="0" cellpadding="3" cellspacing="0">
+    [% FOREACH bug = newbugs %]
+      <tr class="[%+ IF loop.count() % 2 == 0 %]
+                   [% "bz_row_even" %]
+                 [% ELSE %]
+                   [% "bz_row_odd" %]
+                 [% END %]">
+        <td nowrap="nowrap" style="width: 6ex" align="center">
+          [% %]<a href="show_bug.cgi?id=[% bug.bug_id FILTER uri %]">
+          [% bug.bug_id FILTER html %]</a></td>
+        <td nowrap="nowrap" style="width: 12ex" >
+          [% %]<a href="browse.cgi?product=[% bug.product FILTER uri %]">
+          [% bug.product FILTER html %]</a></td>
+        <td nowrap="nowrap" style="width: 4ex" align="center">
+          [% bug.bug_status.truncate(4) FILTER html %]</td>
+        <td nowrap="nowrap" style="width: 3ex" align="center">
+          [% bug.bug_severity.truncate(3) FILTER html %]</td>
+        <td>
+          [% %]<a href="show_bug.cgi?id=[% bug.bug_id FILTER uri%]">
+          [% bug.short_desc FILTER html %]</a></td>
+      </tr>
+    [% END %]
+    </table>
+  </p>
+
+  <p>
+    <h3><span>Open Issues:
+      <a href="
+        [% "buglist.cgi?bug_status=ASSIGNED&amp;emailreporter1=1&amp;" %]
+        [% "emailtype1=exact&amp;email1=" %]
+        [% userinfo.email FILTER uri %]">
+        <b>In progress</b></a>
+      ([% displayname FILTER html %]
+       [%+ "reported it, the developer accepted the issue and is hopefully " %]
+       [% "working on it)" %]
+    </span></h3>
+    <table border="0" cellpadding="3" cellspacing="0">
+    [% FOREACH bug = inprogressbugs %]
+      <tr class="[%+ IF loop.count() % 2 == 0 %]
+                   [% "bz_row_even" %]
+                 [% ELSE %]
+                   [% "bz_row_odd" %]
+                 [% END %]">
+        <td nowrap="nowrap" style="width: 6ex" align="center">
+          [% %]<a href="show_bug.cgi?id=[% bug.bug_id FILTER uri %]">
+          [% bug.bug_id FILTER html %]</a></td>
+        <td nowrap="nowrap" style="width: 12ex">
+          [% %]<a href="browse.cgi?product=[% bug.product FILTER uri %]">
+          [% bug.product FILTER html %]</a></td>
+        <td nowrap="nowrap" style="width: 4ex" align="center">
+          [% bug.bug_status.truncate(4) FILTER html %]</td>
+        <td nowrap="nowrap" style="width: 3ex" align="center">
+          [% bug.bug_severity.truncate(3) FILTER html %]</td>
+        <td>
+          [% %]<a href="show_bug.cgi?id=[% bug.bug_id FILTER uri%]">
+          [% bug.short_desc FILTER html %]</a></td>
+      </tr>
+    [% END %]
+    </table>
+  </p>
+
+  <p>
+    <h3><span>Closed Issues: <b>Recently closed</b></a> ([% displayname FILTER html %] reported it and the issue was closed in the last 7 days)</span></h3>
+    <table border="0" cellpadding="3" cellspacing="0">
+    [% FOREACH bug = recentlyclosed %]
+      <tr class="[%+ IF loop.count() % 2 == 0 %]
+                   [% "bz_row_even" %]
+                 [% ELSE %]
+                   [% "bz_row_odd" %]
+                 [% END %]">
+        <td nowrap="nowrap" style="width: 6ex" align="center">
+          [% %]<a href="show_bug.cgi?id=[% bug.bug_id FILTER uri %]">
+          [% bug.bug_id FILTER html %]</a></td>
+        <td nowrap="nowrap" style="width: 12ex">
+          [% %]<a href="browse.cgi?product=[% bug.product FILTER uri %]">
+          [% bug.product FILTER html %]</a></td>
+        <td nowrap="nowrap" style="width: 4ex" align="center">
+          [% bug.resolution.truncate(4) FILTER html %]</td>
+        <td nowrap="nowrap" style="width: 3ex" align="center">
+          [% bug.bug_severity.truncate(3) FILTER html %]</td>
+        <td>
+          [% %]<a href="show_bug.cgi?id=[% bug.bug_id FILTER uri%]">
+          [% bug.short_desc FILTER html %]</a></td>
+      </tr>
+    [% END %]
+    </table>
+  </p>
+
+[%### Patches ###%]
+  [% IF patches.size %]
+    [% status = '' %]
+    [% FOREACH patch = patches %]
+      [% IF patch.status != status %]
+        [% IF status != '' %]
+          [% "\n    </table>\n  </p>\n\n" %]
+        [% END %]
+        [% status = patch.status %]
+        [% "  <p>\n" _
+           "    <h3><span>Patches: " %]
+        [% status.replace('none','unreviewed') FILTER html %]
+        [% "</span></h3>\n" %]
+        [% "    <table border=\"0\" cellpadding=\"2\" cellspacing=\"0\">" %]
+      [% END %]
+      <tr class="[%+ IF loop.count() % 2 == 0 %]
+                   [% "bz_row_even" %]
+                 [% ELSE %]
+                   [% "bz_row_odd" %]
+                 [% END %]">
+        <td><a href="[% "show_bug.cgi?id=" %]
+                     [% patch.bug_id FILTER uri%]">
+                     [% patch.bug_id FILTER html %]</a></td>
+        <td><a href="[% "attachment.cgi?id=" %]
+                     [% patch.attach_id FILTER uri %]
+                     [% "&amp;action=diff" %]">(#
+                     [% patch.attach_id FILTER html %])</a></td>
+        <td nowrap="nowrap" style="width: 12ex">
+          [% %]<a href="[% "browse.cgi?product=" %]
+                        [% patch.product FILTER uri %]
+                        [% "\">" %]
+                        [% patch.product FILTER html %]</a></td>
+        <td><a href="[% "attachment.cgi?id=" %]
+                     [% patch.attach_id FILTER uri %]
+                     [% "&amp;action=diff" %]">
+                     [% patch.description FILTER html %]</a></td>
+      </tr>
+    [% END %]
+    [% "    </table>\n  </p>" %]
+  [% END %]
+
+[% PROCESS global/footer.html.tmpl %]
